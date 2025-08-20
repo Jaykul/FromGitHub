@@ -96,52 +96,15 @@ function Install-FromGitHub {
             $PSBoundParameters["Architecture"] = $Architecture
         }
         $release = GetGitHubRelease @PSBoundParameters
-        # Update the $Repo (because we use it as a fallback name) after parsing argument handling
-        $Repo = $release.Repo
 
         $asset = SelectAssetByPlatform -assets $release.assets @PSBoundParameters
 
         # Make a random folder to unpack in
-        $workInTemp = Join-Path ([IO.Path]::GetTempPath()) ([IO.Path]::GetRandomFileName())
-        New-Item -Type Directory -Path $workInTemp | Out-Null
-        Push-Location $workInTemp
+        $WorkingTemp = Join-Path ([IO.Path]::GetTempPath()) ([IO.Path]::GetRandomFileName())
+        New-Item -Type Directory -Path $WorkingTemp | Out-Null
+        Push-Location $WorkingTemp
 
-        # Download into our workInTemp folder
-        $ProgressPreference = "SilentlyContinue"
-        Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $asset.name -Verbose:$false
-
-        # There might be a checksum file
-        if ($asset.ChecksumUrl) {
-            if (!(Test-FileHash -Target $asset.name -Checksum $asset.ChecksumUrl)) {
-                throw "Checksum mismatch for $($asset.name)"
-            }
-        } else {
-            Write-Warning "No checksum file found, skipping checksum validation for $($asset.name)"
-        }
-
-        # If it's an archive, expand it (inside our workInTemp folder)
-        # We'll keep the folder the executable is in as $PackagePath either way.
-        if ($asset.Extension -and $asset.Extension -ne ".exe") {
-            $File = Get-Item $asset.name
-            New-Item -Type Directory -Path $Repo |
-                Convert-Path -OutVariable PackagePath |
-                Set-Location
-
-            Write-Verbose "Extracting $File to $PackagePath"
-            if ($asset.Extension -eq ".zip") {
-                Microsoft.PowerShell.Archive\Expand-Archive $File.FullName
-            } else {
-                if ($VerbosePreference -eq "Continue") {
-                    tar -xzvf $File.FullName
-                } else {
-                    tar -xzf $File.FullName
-                }
-            }
-            # Return to the workInTemp folder
-            Set-Location $workInTemp
-        } else {
-            $PackagePath = $workInTemp
-        }
+        $PackagePath = GetPackage $asset -WorkingName $release.Repo
 
         # Make sure there's a place to put the binary on the PATH
         $BinDir = InitializeBinDir $BinDir -Force:$Force
@@ -151,6 +114,6 @@ function Install-FromGitHub {
 
         Pop-Location
 
-        Remove-Item $workInTemp -Recurse
+        Remove-Item $WorkingTemp -Recurse
     }
 }

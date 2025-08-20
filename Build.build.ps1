@@ -46,9 +46,19 @@ if ($MyInvocation.ScriptName -notlike '*Invoke-Build.ps1') {
 }
 
 Add-BuildTask RenameScript -After PSModuleBuild {
-    $ScriptName = "Install-GitHubRelease.ps1"
-    Get-ChildItem -Path $Env:OUTPUT_ROOT -Filter "*.ps1" -Directory -ErrorAction Ignore
-    | Rename-Item -NewName $ScriptName
+    $ExpectedName = "Install-FromGitHub.ps1"
+    $ScriptName = "Install-GithubRelease.ps1"
+    $Script = if ($GitVersion.$PSModuleName.MajorMinorPatch) {
+        $ScriptPath = Join-Path $PSModuleOutputPath $GitVersion.$PSModuleName.MajorMinorPatch
+        Get-ChildItem -Path $ScriptPath -Filter $ExpectedName -ErrorAction Ignore
+    } else {
+        Get-ChildItem -Path $PSModuleOutputPath -Filter $ExpectedName -Recurse -ErrorAction Ignore
+    }
+    if ($Script.Count -eq 1) {
+        $Script | Rename-Item -NewName $ScriptName
+    } else {
+        Write-Warning "Did not rename $ExpectedName to $ScriptName"
+    }
 }
 
 ## Initialize the build variables, and import shared tasks, including DotNet tasks
