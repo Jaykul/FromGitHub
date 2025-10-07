@@ -8,7 +8,6 @@ function GetGitHubRelease {
 
         [string]$Tag = 'latest'
     )
-
     Write-Debug "Org: $Org, Repo: $Repo, Tag: $Tag"
 
     # Handle the Org parameter being a org/repo/version or the full URL to a project or release
@@ -49,10 +48,17 @@ function GetGitHubRelease {
 
     Write-Verbose "Checking GitHub $Org/$Repo for '$Tag'"
 
+    $headers = @{
+        Accept     = 'application/vnd.github.v3+json'
+    }
+    if( $env:GITHUB_TOKEN ) {
+        $headers.Authorization = "bearer $($Env:GITHUB_TOKEN)"
+    }
+
     $Result = if ($Tag -eq 'latest') {
-        Invoke-RestMethod "https://api.github.com/repos/$Org/$Repo/releases/$Tag" -Headers @{Accept = 'application/json' } -Verbose:$false
+        Invoke-RestMethod "https://api.github.com/repos/$Org/$Repo/releases/$Tag" -Headers $headers -Verbose:$false
     } else {
-        Invoke-RestMethod "https://api.github.com/repos/$Org/$Repo/releases/tags/$Tag" -Headers @{Accept = 'application/json' } -Verbose:$false
+        Invoke-RestMethod "https://api.github.com/repos/$Org/$Repo/releases/tags/$Tag" -Headers $headers -Verbose:$false
     }
 
     Write-Verbose "found release $($Result.tag_name) for $Org/$Repo"

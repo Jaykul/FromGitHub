@@ -26,7 +26,11 @@ function Test-FileHash {
             # If Checksum is a URL, fetch the checksum(s) from the URL
             if ($Check -match "https?://") {
                 Write-Debug "Checksum is a URL: $Check"
-                Invoke-RestMethod $Check
+                if($Env:GITHUB_TOKEN) {
+                    Invoke-RestMethod $Check -Headers @{ Authorization = "Bearer $($Env:GITHUB_TOKEN)" }
+                } else {
+                    Invoke-RestMethod $Check
+                }
             } elseif (Test-Path $Check) {
                 Write-Debug "Checksum is a file: $Check"
                 Get-Content $Check
