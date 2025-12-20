@@ -80,3 +80,13 @@ Install-FromGitHub GitTower/git-flow-next
 
 - Support linux packages on release pages (deb, rpm, apk, etc)
 - Support better archive formats (7z, etc)
+
+## Experimental: New-ImageFromGitHub
+
+The latest feature in this module is still a little experimental. New-ImageFromGitHub creates a multi-arch (Windows and Linux) docker image with the binary extracted from a GitHub release. This lets you easily create container images for CLI tools released on GitHub, writing a minimal Dockerfile for you, and generating it locally. It's part of an experiment I'm playing around with publishing cross-platform CLI tools as container images for our CI/CD pipelines, with the goal of being able to run them from containers, or extract them from the layers for local use.
+
+Example:
+
+```powershell
+New-ImageFromGitHub -Repo 'earthly/earthly'
+```
