@@ -147,7 +147,7 @@ function Install-FromGitHub {
         $BinDir = InitializeBinDir $BinDir -Force:$Force
 
         Write-Verbose "Moving the executable(s) from $PackagePath to $BinDir"
-        MoveExecutable -FromDir $PackagePath -ToDir $BinDir @PSBoundParameters
+        MoveExecutable -FromDir $PackagePath -ToDir $BinDir @PSBoundParameters -Force:$Force
 
         Pop-Location
 

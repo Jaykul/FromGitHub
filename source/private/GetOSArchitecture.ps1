@@ -1,18 +1,24 @@
 function GetOSArchitecture {
     [CmdletBinding()]
     param(
-        [switch]$Pattern
+        # If set, returns a regex pattern (based on the OS) that usually matches the architecture in asset names
+        [switch]$Pattern,
+        # A mock override exposed for testing only -- API only available in PS6+
+        [string]$OSArchitecture = ([Runtime.InteropServices.RuntimeInformation]::OSArchitecture),
+        # A mock override exposed for testing only
+        [bool]$Is64Bit = ([Environment]::Is64BitOperatingSystem)
     )
 
     # PowerShell Core
-    $Architecture = if (($arch = "$([Runtime.InteropServices.RuntimeInformation]::OSArchitecture)")) {
-        $arch
+    $Architecture = if ($OSArchitecture) {
+        $OSArchitecture
         # Legacy Windows PowerShell
-    } elseif ([Environment]::Is64BitOperatingSystem) {
+    } elseif ($Is64Bit) {
         "X64";
     } else {
         "X86";
     }
+
     # Optionally, turn this into a regex pattern that usually works
     if ($Pattern) {
         Write-Information $Architecture

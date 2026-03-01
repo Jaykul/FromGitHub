@@ -1,19 +1,30 @@
 function InitializeBinDir {
     [CmdletBinding(SupportsShouldProcess)]
     param(
+        # The location to install to.
+        # Defaults to $Env:LocalAppData\Programs\Tools on Windows, /usr/local/bin on Linux/MacOS
+        # Passthrough from Install-FromGitHub
         [string]$BinDir,
-        [switch]$Force
+        # Skip ShouldProcess confirmation
+        [switch]$Force,
+        # A mock override exposed for testing only
+        [switch]$IsPosix = $IsLinux -or $IsMacOS
     )
 
     if (!$BinDir) {
-        $BinDir = $(if ($IsLinux -or $IsMacOS) { '/usr/local/bin' }
-                    elseif ($Env:LocalAppData) { "$Env:LocalAppData\Programs\Tools" }
-                    else { "$HOME/.tools" })
+        $BinDir = $(if ($IsPosix) {
+                '/usr/local/bin'
+            } elseif ($Env:LocalAppData) {
+                "$Env:LocalAppData\Programs\Tools"
+            } else {
+                "$HOME/.tools"
+            }
+        )
     }
 
     if (!(Test-Path $BinDir)) {
         # First time use of $BinDir
-        if ($Force -or $PSCmdlet.ShouldContinue("Create $BinDir and add to Path?", "$BinDir does not exist")) {
+        if ($Force -or $PSCmdlet.ShouldProcess($BinDir, "create directory and add to PATH")) {
             New-Item -Type Directory -Path $BinDir | Out-Null
             if ($Env:PATH -split [IO.Path]::PathSeparator -notcontains $BinDir) {
                 $Env:PATH += [IO.Path]::PathSeparator + $BinDir
@@ -26,9 +37,10 @@ function InitializeBinDir {
                     [Environment]::SetEnvironmentVariable("PATH", $PATH, [EnvironmentVariableTarget]::User)
                 }
             }
-        } else {
-            throw "Cannot install $Repo to $BinDir"
         }
+        # else {
+        #     throw "Cannot install $Repo to $BinDir"
+        # }
     }
     $BinDir
 }

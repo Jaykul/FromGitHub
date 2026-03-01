@@ -3,6 +3,7 @@ function MoveExecutable {
     # We do not want to type earthly_win64.exe every time, so rename to the base name...
     # DO NOT USE `[CmdletBinding()]` or [Parameter()]
     # We splat the parameters from Install-GitHubRelease and we need to ignore the extras
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [string]$FromDir,
 
@@ -22,67 +23,47 @@ function MoveExecutable {
         [string]$Repo,
 
         # For testing purposes, override OS detection
-        [switch]$IsPosix = $IsLinux -or $IsMacOS
+        [switch]$IsPosix = $IsLinux -or $IsMacOS,
+
+        # Skip ShouldProcess confirmation when moving files
+        [switch]$Force
     )
     $AllFiles = Get-ChildItem $FromDir -File -Recurse
     if ($AllFiles.Count -eq 0) {
         Write-Warning "No executables found in $FromDir"
         return
     }
-
-    $Extensions = @(if (!$IsPosix) {
-            # On Windows, only rename it if  has an executable extension
-            @($ENV:PATHEXT -split ';') + '.EXE'
-        })
-
     foreach ($File in $AllFiles) {
-        $NewName = $File.Name
-        # When there is a manually specified executable name, we use that
-        if ($ExecutableName) {
-            # Make sure the executable name has the right extension
-            if ($File.Extension) {
-                $ExecutableName = [IO.Path]::ChangeExtension($ExecutableName, $File.Extension)
-            }
-            # If there is only one file, definitely rename it even if it's unique
-            if ($AllFiles.Count -eq 1) {
-                $NewName = $ExecutableName
-            }
-        }
-        # Normally, we only rename the file if it has the OS and/or Architecture in the name (and is executable)
-        if ($File.BaseName -match $OS -or $File.BaseName -match $Architecture -and ($Extensions.Count -eq 0 -or $File.Extension -in $Extensions)) {
-            # Try just removing the OS and Architecture from the name
-            if (($NewName = ($File.BaseName -replace "[-_. ]*(?:$OS)[-_. ]*" -replace "[-_. ]*(?:$Architecture)[-_. ]*"))) {
-                $NewName = $NewName.Trim("-_. ") + $File.Extension
-                # Otherwise, fall back to the repo name
-            } elseif ($ExecutableName) {
-                $NewName = $ExecutableName
-            } else {
-                $NewName = $Repo.Trim("-_. ") + $File.Extension
-            }
-        }
+        $null = $PSBoundParameters.Remove("ToDir")
+        $null = $PSBoundParameters.Remove("FromDir")
+        $NewName = SelectExecutableName -File $File -Force:($AllFiles.Count -eq 1) @PSBoundParameters
+
         if ($NewName -ne $File.Name) {
             Write-Warning "Renaming $File to $NewName"
             $File = Rename-Item $File.FullName -NewName $NewName -PassThru
         }
 
-        # Some few teams include the docs with their package (e.g. opentofu)
+        # Some few projects include the docs with their package (e.g. opentofu)
         # And I want the user to know these files were available, but not move them
         if ($File.BaseName -match "README|LICENSE|CHANGELOG" -or $File.Extension -in ".md", ".rst", ".txt", ".asc", ".doc" ) {
             Write-Verbose "Skipping doc $File"
             continue
         }
+
         Write-Verbose "Moving $File to $ToDir"
 
         # On non-Windows systems, we might need sudo to copy (if the folder is write protected)
         if ($IsPosix -and (Get-Item $ToDir -Force).Attributes -eq "ReadOnly,Directory") {
-            sudo mv -f $File.FullName $ToDir
-            sudo chmod +x "$ToDir/$($File.Name)"
+            if ($Force -or $PSCmdlet.ShouldProcess("Moving $File requires elevated permissions. Do you want to continue?", "$ToDir")) {
+                sudo mv -f $File.FullName $ToDir
+                sudo chmod +x "$ToDir/$($File.Name)"
+            }
         } else {
             if (Test-Path $ToDir/$($File.Name)) {
                 Remove-Item $ToDir/$($File.Name) -Recurse -Force
             }
             $Executable = Move-Item $File.FullName -Destination $ToDir -Force -ErrorAction Stop -PassThru
-            if ($IsPosix) {
+            if ($IsPosix -and ($Force -or $PSCmdlet.ShouldProcess("Setting eXecute bit", $Executable.FullName))) {
                 chmod +x $Executable.FullName
             }
         }

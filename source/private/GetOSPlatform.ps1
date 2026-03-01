@@ -1,18 +1,22 @@
 function GetOSPlatform {
     [CmdletBinding()]
     param(
-        [switch]$Pattern
+        # If set, returns a regex pattern (based on the OS) that usually matches the OS in asset names
+        [switch]$Pattern,
+        # A mock override exposed for testing only
+        [scriptblock]$IsOsPlatform = {
+            [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform( $args[0] )
+        }
     )
-    $ri = [System.Runtime.InteropServices.RuntimeInformation]
     $platform = [System.Runtime.InteropServices.OSPlatform]
     # if $ri isn't defined, then we must be running in Powershell 5.1, which only works on Windows.
-    $OS = if (-not $ri -or $ri::IsOSPlatform($platform::Windows)) {
+    $OS = if (& $IsOsPlatform $platform::Windows) {
         "windows"
-    } elseif ($ri::IsOSPlatform($platform::Linux)) {
+    } elseif (& $IsOsPlatform $platform::Linux) {
         "linux"
-    } elseif ($ri::IsOSPlatform($platform::OSX)) {
+    } elseif (& $IsOsPlatform $platform::OSX) {
         "darwin"
-    } elseif ($ri::IsOSPlatform($platform::FreeBSD)) {
+    } elseif (& $IsOsPlatform $platform::FreeBSD) {
         "freebsd"
     } else {
         throw "unsupported platform"
