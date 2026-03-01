@@ -24,7 +24,7 @@ $ErrorView = 'DetailedView'
 
 # The name of the module to build and publish
 $script:PSModuleName = "FromGitHub"
-$script:RequiredCodeCoverage = 0.15 # I'm just starting to write tests
+$script:RequiredCodeCoverage = 0.70
 
 # Use Env because Earthly can override it
 $Env:OUTPUT_ROOT ??= Join-Path $BuildRoot Modules
@@ -45,7 +45,9 @@ if ($MyInvocation.ScriptName -notlike '*Invoke-Build.ps1') {
     exit 0
 }
 
-Add-BuildTask RenameScript -After PSModuleBuild {
+Add-BuildTask . PSModuleBuild, RenameScript
+
+Add-BuildTask RenameScript {
     $ScriptName = "Install-GitHubRelease.ps1"
     Get-ChildItem -Path $Env:OUTPUT_ROOT -Filter "*.ps1" -Directory -ErrorAction Ignore
     | Rename-Item -NewName $ScriptName
