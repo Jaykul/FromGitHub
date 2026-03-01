@@ -34,6 +34,9 @@ function Test-FileHash {
             } elseif (Test-Path $Check) {
                 Write-Debug "Checksum is a file: $Check"
                 Get-Content $Check
+            } else {
+                Write-Debug "Checksum is a string: $Check"
+                "$([IO.Path]::GetFileName($Target)) = $Check"
             }
         }
     ) -match $basename -split "\s+|=" -notmatch $basename
