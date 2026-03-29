@@ -30,7 +30,7 @@ Describe MoveExecutable {
         function global:chmod {
         }
 
-        &$CommandUnderTest -FromDir $FromDir -ToDir $ToDir -OS $OS -Architecture $Architecture -Repo $Repo -IsPosix:$IsPosix
+        &$CommandUnderTest -FromDir $FromDir -ToDir $ToDir -OS $OS -Architecture $Architecture -Repo $Repo -IsPosix:$IsPosix -WarningAction SilentlyContinue
         | Assert-All { $_.Name -eq $FileName }
     }
 }

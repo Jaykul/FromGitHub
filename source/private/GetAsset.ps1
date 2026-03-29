@@ -1,0 +1,56 @@
+function GetAsset {
+    <#
+        .SYNOPSIS
+            Download and extract a GitHub release asset.
+        .DESCRIPTION
+            Downloads the asset from a GitHub release and extracts it if it's an archive.
+            Returns the path to the directory where the file was downloaded, or the subfolder where it was extracted.
+    #>
+    [CmdletBinding()]
+    param(
+        # The Asset (from `SelectAssetByPlatform`) to download and extract
+        [Parameter(Mandatory)]
+        $Asset,
+
+        # The name of a folder to extract the asset to (in case it's a zip)
+        [string]$Repo = $(@($Asset.Name -split "[-_. /\\]+")[0])
+    )
+
+    # Download into our PresentWorkingDirectory
+    $ProgressPreference = "SilentlyContinue"
+    Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $asset.name -Verbose:$false
+
+    # There might be a checksum file
+    if ($asset.ChecksumUrl) {
+        if (!(Test-FileHash -Target $asset.name -Checksum $asset.ChecksumUrl)) {
+            throw "Checksum mismatch for $($asset.name)"
+        }
+    } else {
+        Write-Warning "No checksum file found, skipping checksum validation for $($asset.name)"
+    }
+
+    # If it's an archive, expand it (inside our PresentWorkingDirectory)
+    # We'll keep the folder the executable is in as $PackagePath either way.
+    if ($asset.Extension -and $asset.Extension -ne ".exe") {
+        $File = Get-Item $asset.name
+        New-Item -Type Directory -Path $Repo |
+            Convert-Path -OutVariable PackagePath |
+            Set-Location
+
+        Write-Verbose "Extracting $File to $PackagePath"
+        if ($asset.Extension -eq ".zip") {
+            Microsoft.PowerShell.Archive\Expand-Archive $File.FullName
+        } else {
+            if ($VerbosePreference -eq "Continue") {
+                tar -xzvf $File.FullName
+            } else {
+                tar -xzf $File.FullName
+            }
+        }
+        # Return the path to the extracted asset
+        $PackagePath
+    } else {
+        # Return the path to the downloaded asset
+        $Pwd.Path
+    }
+}

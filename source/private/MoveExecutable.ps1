@@ -5,10 +5,12 @@ function MoveExecutable {
     # We splat the parameters from Install-GitHubRelease and we need to ignore the extras
     [CmdletBinding(SupportsShouldProcess)]
     param(
-        [string]$FromDir,
+        # The directory where the asset was extracted to (i.e. the output of GetAsset)
+        [string]$AssetDir,
 
+        # The directory to move the executable(s) to (i.e. the output of InitializeBinDir)
         [Alias("TargetDirectory")]
-        [string]$ToDir,
+        [string]$BinDir,
 
         # A regex pattern to select the right asset for this OS
         [string]$OS,
@@ -28,14 +30,14 @@ function MoveExecutable {
         # Skip ShouldProcess confirmation when moving files
         [switch]$Force
     )
-    $AllFiles = Get-ChildItem $FromDir -File -Recurse
+    $AllFiles = Get-ChildItem $AssetDir -File -Recurse
     if ($AllFiles.Count -eq 0) {
-        Write-Warning "No executables found in $FromDir"
+        Write-Warning "No executables found in $AssetDir"
         return
     }
     foreach ($File in $AllFiles) {
-        $null = $PSBoundParameters.Remove("ToDir")
-        $null = $PSBoundParameters.Remove("FromDir")
+        $null = $PSBoundParameters.Remove("BinDir")
+        $null = $PSBoundParameters.Remove("AssetDir")
         $NewName = SelectExecutableName -File $File -Force:($AllFiles.Count -eq 1) @PSBoundParameters
 
         if ($NewName -ne $File.Name) {
@@ -50,24 +52,24 @@ function MoveExecutable {
             continue
         }
 
-        Write-Verbose "Moving $File to $ToDir"
+        Write-Verbose "Moving $File to $BinDir"
 
         # On non-Windows systems, we might need sudo to copy (if the folder is write protected)
-        if ($IsPosix -and (Get-Item $ToDir -Force).Attributes -eq "ReadOnly,Directory") {
-            if ($Force -or $PSCmdlet.ShouldProcess("Moving $File requires elevated permissions. Do you want to continue?", "$ToDir")) {
-                sudo mv -f $File.FullName $ToDir
-                sudo chmod +x "$ToDir/$($File.Name)"
+        if ($IsPosix -and (Get-Item $BinDir -Force).Attributes -eq "ReadOnly,Directory") {
+            if ($Force -or $PSCmdlet.ShouldProcess("Moving $File requires elevated permissions. Do you want to continue?", "$BinDir")) {
+                sudo mv -f $File.FullName $BinDir
+                sudo chmod +x "$BinDir/$($File.Name)"
             }
         } else {
-            if (Test-Path $ToDir/$($File.Name)) {
-                Remove-Item $ToDir/$($File.Name) -Recurse -Force
+            if (Test-Path $BinDir/$($File.Name)) {
+                Remove-Item $BinDir/$($File.Name) -Recurse -Force
             }
-            $Executable = Move-Item $File.FullName -Destination $ToDir -Force -ErrorAction Stop -PassThru
+            $Executable = Move-Item $File.FullName -Destination $BinDir -Force -ErrorAction Stop -PassThru
             if ($IsPosix -and ($Force -or $PSCmdlet.ShouldProcess("Setting eXecute bit", $Executable.FullName))) {
                 chmod +x $Executable.FullName
             }
         }
         # Output the moved item, because sometimes our "using someearthly_version_win64.zip" message is confusing
-        Get-Item (Join-Path $ToDir $File.Name) -ErrorAction Ignore
+        Get-Item (Join-Path $BinDir $File.Name) -ErrorAction Ignore
     }
 }
