@@ -11,36 +11,36 @@ function Install-FromGitHub {
         list of downloadable assets, and relies on the common naming convention
         to detect the right binary for your OS (and architecture).
     .EXAMPLE
-        Install-GithubRelease FluxCD Flux2
+        Install-FromGitHub FluxCD Flux2
 
         Install `Flux` from the https://github.com/FluxCD/Flux2 repository
     .EXAMPLE
-        Install-GithubRelease earthly earthly
+        Install-FromGitHub earthly earthly
 
         Install `earthly` from the https://github.com/earthly/earthly repository
     .EXAMPLE
-        Install-GithubRelease junegunn fzf
+        Install-FromGitHub junegunn fzf
 
         Install `fzf` from the https://github.com/junegunn/fzf repository
     .EXAMPLE
-        Install-GithubRelease BurntSushi ripgrep
+        Install-FromGitHub BurntSushi ripgrep
 
         Install `rg` from the https://github.com/BurntSushi/ripgrep repository
     .EXAMPLE
-        Install-GithubRelease opentofu opentofu
+        Install-FromGitHub opentofu opentofu
 
         Install `opentofu` from the https://github.com/opentofu/opentofu repository
     .EXAMPLE
-        Install-GithubRelease twpayne chezmoi
+        Install-FromGitHub twpayne chezmoi
 
         Install `chezmoi` from the https://github.com/twpayne/chezmoi repository
     .EXAMPLE
-        Install-GitHubRelease https://github.com/mikefarah/yq/releases/tag/v4.44.6
+        Install-FromGitHub https://github.com/mikefarah/yq/releases/tag/v4.44.6
 
         Install `yq` version v4.44.6 from it's release on github.com
     .EXAMPLE
-        Install-GithubRelease sharkdp/bat
-        Install-GithubRelease sharkdp/fd
+        Install-FromGitHub sharkdp/bat
+        Install-FromGitHub sharkdp/fd
 
         Install `bat` and `fd` from their repositories
     .NOTES
@@ -86,6 +86,8 @@ function Install-FromGitHub {
         [string]$ExecutableName
     )
     begin {
+        $ErrorActionPreference = "Stop"
+
         # Really this should just be a default value, but GetOSPlatform is private because it's weird, ok?
         if (!$OS) {
             $OS = GetOSPlatform -Pattern
