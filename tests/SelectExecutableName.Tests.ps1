@@ -6,54 +6,71 @@ Describe "SelectExecutableName" {
     BeforeDiscovery {
         $TestCases = @(
             @{
-                OS = "darwin|osx"
-                Architecture = "arm64"
-                Repo = "regal"
-                FileName = "regal_Darwin_arm64"
+                OS            = "darwin|osx"
+                Architecture  = "arm64"
+                Repo          = "regal"
+                Tag           = "v1.0.0"
+                FileName      = "regal_Darwin_arm64"
                 FileExtension = ""
-                IsPosix = $true
-                Expected = "regal"
-                Description = "macOS ARM64 - should strip OS and Architecture"
+                IsPosix       = $true
+                Expected      = "regal"
+                Description   = "macOS ARM64 - should strip OS and Architecture"
             }
             @{
-                OS = "darwin|osx"
-                Architecture = "amd64|x64|x86_64"
-                Repo = "earthly"
-                FileName = "earthly-darwin-amd64"
+                OS            = "darwin|osx"
+                Architecture  = "amd64|x64|x86_64"
+                Repo          = "earthly"
+                Tag           = "v1.0.0"
+                FileName      = "earthly-darwin-amd64"
                 FileExtension = ""
-                IsPosix = $true
-                Expected = "earthly"
-                Description = "macOS x86_64 - should strip dashes"
+                IsPosix       = $true
+                Expected      = "earthly"
+                Description   = "macOS x86_64 - should strip dashes"
             }
             @{
-                OS = "linux|unix"
-                Architecture = "arm64"
-                Repo = "regal"
-                FileName = "regal_Linux_arm64"
+                OS            = "linux|unix"
+                Architecture  = "arm64"
+                Repo          = "regal"
+                Tag           = "v1.0.0"
+                FileName      = "regal_Linux_arm64"
                 FileExtension = ""
-                IsPosix = $true
-                Expected = "regal"
-                Description = "Linux ARM64 - should strip OS and Architecture"
+                IsPosix       = $true
+                Expected      = "regal"
+                Description   = "Linux ARM64 - should strip OS and Architecture"
             }
             @{
-                OS = "windows|(?<!dar)win"
-                Architecture = "amd64|x64|x86_64"
-                Repo = "ripgrep"
-                FileName = "ripgrep_Windows_x86_64.exe"
+                OS            = "windows|(?<!dar)win"
+                Architecture  = "amd64|x64|x86_64"
+                Repo          = "ripgrep"
+                Tag           = "v1.0.0"
+                FileName      = "ripgrep_Windows_x86_64.exe"
                 FileExtension = ".exe"
-                IsPosix = $false
-                Expected = "ripgrep.exe"
-                Description = "Windows x86_64 - should preserve .exe extension"
+                IsPosix       = $false
+                Expected      = "ripgrep.exe"
+                Description   = "Windows x86_64 - should preserve .exe extension"
             }
             @{
-                OS = "windows|(?<!dar)win"
-                Architecture = "amd64|x64|x86_64"
-                Repo = "fzf"
-                FileName = "fzf-windows-amd64.exe"
+                OS            = "windows|(?<!dar)win"
+                Architecture  = "amd64|x64|x86_64"
+                Repo          = "fzf"
+                Tag           = "v1.0.0"
+                FileName      = "fzf-windows-amd64.exe"
                 FileExtension = ".exe"
-                IsPosix = $false
-                Expected = "fzf.exe"
-                Description = "Windows x86_64 with dashes - should strip and add .exe"
+                IsPosix       = $false
+                Expected      = "fzf.exe"
+                Description   = "Windows x86_64 with dashes - should strip and add .exe"
+            }
+            # GitTower put the version number in their asset names ...
+            @{
+                OS            = "windows|(?<!dar)win"
+                Architecture  = "amd64|x64|x86_64"
+                Repo          = "git-flow-next"
+                Tag           = "v1.0.0"
+                FileName      = "git-flow-v1.0.0-windows-amd64.exe"
+                FileExtension = ".exe"
+                IsPosix       = $false
+                Expected      = "git-flow.exe"
+                Description   = "git-flow should not have the version in the name"
             }
         )
     }
@@ -63,7 +80,7 @@ Describe "SelectExecutableName" {
             # Create a test file
             $File = New-Item -ItemType File -Path (Join-Path $TestDrive $FileName) -Force
 
-            $result = & $CommandUnderTest -OS $OS -Architecture $Architecture -Repo $Repo -File $File -IsPosix:$IsPosix
+            $result = & $CommandUnderTest -OS $OS -Architecture $Architecture -Repo $Repo -Tag $Tag -File $File -IsPosix:$IsPosix
 
             $result | Should -Be $Expected
             Remove-Item $File -Force
@@ -78,6 +95,7 @@ Describe "SelectExecutableName" {
                 -OS "linux|unix" `
                 -Architecture "amd64|x64|x86_64" `
                 -ExecutableName "mycustom" `
+                -Tag "v1.0.0" `
                 -File $File `
                 -IsPosix:$true
 
@@ -92,6 +110,7 @@ Describe "SelectExecutableName" {
                 -OS "windows|(?<!dar)win" `
                 -Architecture "amd64|x64|x86_64" `
                 -ExecutableName "mytool" `
+                -Tag "v1.0.0" `
                 -File $File `
                 -IsPosix:$false
 
@@ -108,6 +127,7 @@ Describe "SelectExecutableName" {
                 -OS "windows|(?<!dar)win" `
                 -Architecture "amd64|x64|x86_64" `
                 -Repo "myproject" `
+                -Tag "v1.0.0" `
                 -File $File `
                 -Force `
                 -IsPosix:$false
@@ -124,6 +144,7 @@ Describe "SelectExecutableName" {
                 -Architecture "amd64|x64|x86_64" `
                 -Repo "myproject" `
                 -ExecutableName "preferred" `
+                -Tag "v1.0.0" `
                 -File $File `
                 -Force `
                 -IsPosix:$false
@@ -140,6 +161,7 @@ Describe "SelectExecutableName" {
             $result = & $CommandUnderTest `
                 -OS "linux|unix" `
                 -Architecture "amd64|x64|x86_64" `
+                -Tag "v1.0.0" `
                 -File $File `
                 -IsPosix:$true
 
@@ -154,6 +176,7 @@ Describe "SelectExecutableName" {
                 -OS "windows|(?<!dar)win" `
                 -Architecture "amd64|x64|x86_64" `
                 -Repo "myrepo" `
+                -Tag "v1.0.0" `
                 -File $File `
                 -IsPosix:$false
 

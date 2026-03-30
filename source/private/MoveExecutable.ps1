@@ -24,6 +24,9 @@ function MoveExecutable {
         # The name of the repository, as a fallback for the executable name
         [string]$Repo,
 
+        # The tag of the release we downloaded, in case we need to trim it from the name
+        [string]$Tag,
+
         # For testing purposes, override OS detection
         [switch]$IsPosix = $IsLinux -or $IsMacOS,
 

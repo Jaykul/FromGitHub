@@ -104,8 +104,7 @@ function Install-FromGitHub {
         $release = GetGitHubRelease @PSBoundParameters
         # Update the $Repo (because we use it as a fallback name) after parsing argument handling
         $PSBoundParameters["Repo"] = $Repo = $release.Repo
-
-        $null = $PSBoundParameters.Remove("Tag")
+        $PSBoundParameters["Tag"] = $release.tag_name
         $null = $PSBoundParameters.Remove("Org")
 
         $asset = SelectAssetByPlatform -assets $release.assets -OS $OS -Architecture $Architecture
