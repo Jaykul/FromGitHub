@@ -22,7 +22,9 @@ function SelectAssetByPlatform {
     # If the extension is not in this list, we don't know how to handle it (for now)
     # TODO: Support for linux packages (deb, rpm, apk, etc)
     # TODO: Support for better archives (7z, etc)
-    $extension = ".zip", ".tgz", ".tar.gz", ".exe"
+    $assetExtension = ".zip", ".tgz", ".tar.gz", ".exe"
+    $checksumExtension = ".sha", ".sha256", ".sha256sum", ".sha256sums", ".checksum", ".checksums", ".txt"
+    $extension = $assetExtension + $checksumExtension
     $AllAssets = $assets |
         # I need both the Extension and the Priority on the final object for the logic below
         # I'll put the extension on, and then use that to calculate the priority
@@ -64,40 +66,42 @@ function SelectAssetByPlatform {
         Where-Object { $_.Priority -ge 0 } |
         Sort-Object Priority, { $_.Name.Length }, Name
 
-    Write-Verbose "Found $($AllAssets.Count) assets. Testing for $OS/$Architecture`n $($AllAssets| Format-Table name, b*url | Out-String)"
+    Write-Verbose "Found $($AllAssets.Count) (of $($assets.Count)) assets. Testing for $OS/$Architecture`n $($AllAssets| Format-Table name, b*url | Out-String)"
 
     $MatchedAssets = $AllAssets.where{ $_.name -match $OS -and $_.name -match $Architecture }
     Write-Verbose "Assets for $OS/$Architecture`n $($MatchedAssets| Format-Table name, Extension, b*url | Out-String)"
 
-    if ($MatchedAssets.Count -gt 1) {
+    if ($MatchedAssets.Count -eq 1) {
+        $asset = $MatchedAssets[0]
+    } elseif ($MatchedAssets.Count -gt 1) {
         # The patterns are expected to be | separated and in order of preference
         :top foreach ($o in $OS -split '\|') {
             foreach ($a in $Architecture -split '\|') {
                 # Now that we're looking in order of preference, we can just stop when we find a match
-                if ($MatchedAssets = $AllAssets.Where({ $_.name -match $o -and $_.name -match $a -and ((-not $_.Extension -and $OS -notmatch "windows") -or $_.Extension -in $extension) }, "First", 1)) {
-                    Write-Verbose "Selected $($MatchedAssets.name) for $o|$a"
+                if ($asset = $AllAssets.Where({ $_.name -match $o -and $_.name -match $a -and ((-not $_.Extension -and $OS -notmatch "windows") -or $_.Extension -in $assetExtension) }, "First", 1)) {
+                    Write-Verbose "Selected $($asset.name) for $o|$a"
+
+                    # Check for a match-specific checksum file
+                    if ($checksum = $AllAssets.Where({ $_.name -match $o -and $_.name -match $a -and ((-not $_.Extension -and $OS -notmatch "windows") -or $_.Extension -in $checksumExtension) }, "First", 1)) {
+                        $asset | Add-Member -NotePropertyMember @{ ChecksumUrl = $checksum.browser_download_url }
+                    }
                     break top
                 } else {
                     Write-Verbose "No match for $o|$a"
                 }
             }
         }
+
+    } else {
+        throw "No asset found for $OS/$Architecture`n $($AllAssets.name -join "`n")"
     }
 
-    if ($MatchedAssets.Count -gt 1) {
-        throw "Found multiple available downloads for $OS/$Architecture`n $($MatchedAssets| Format-Table name, Extension, b*url | Out-String)`nUnable to determine best release. Please specify -OS or -Architecture to narrow it down."
-    } elseif ($MatchedAssets.Count -eq 0) {
-        throw "No asset found for $OS/$Architecture`n $($AllAssets.name -join "`n")"
-    } else {
-        $asset = $MatchedAssets[0]
-    }
-    # Check for a match-specific checksum file
-    if( ($sha = $MatchedAssets.Where({$_.name -match "checksum|sha256sums|sha"}, "First")) -or
-        # or a single checksum file for all assets
-        ($sha = $assets.Where({$_.name -match "checksum|sha256sums|sha"}, "First"))) {
-        Write-Verbose "Found checksum file $($sha.browser_download_url) for $($asset.name)"
+    # Check for a single checksum file for all assets
+    if (!$checksum) {
+        $checksum = $assets.Where({ $_.name -match "checksum|sha256sums|sha" }, "First")
+        Write-Verbose "Found checksum file $($checksum.browser_download_url) for $($asset.name)"
         # Add that url to the asset object
-        $asset | Add-Member -NotePropertyMember @{ ChecksumUrl = $sha.browser_download_url }
+        $asset | Add-Member -NotePropertyMember @{ ChecksumUrl = $checksum.browser_download_url } -Force
     }
     $asset
 }
