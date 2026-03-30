@@ -24,7 +24,7 @@ $ErrorView = 'DetailedView'
 
 # The name of the module to build and publish
 $script:PSModuleName = "FromGitHub"
-$script:RequiredCodeCoverage = 0.70
+$script:RequiredCodeCoverage = 0.80
 
 # Use Env because Earthly can override it
 $Env:OUTPUT_ROOT ??= Join-Path $BuildRoot Modules
