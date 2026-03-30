@@ -37,16 +37,18 @@ function SelectExecutableName {
 
         # A list of file extensions to consider executable
         # By default, empty on Linux/MacOS, and $Env:PATHEXT on Windows
-        $FilterExtensions = @(if (-not $IsPosix) {
-                # On Windows, only rename it if  has an executable extension
+        $FilterExtensions = @(
+            # On Windows, only rename when it has an executable extension
+            if (-not $IsPosix) {
                 @($ENV:PATHEXT -split ';') + '.EXE'
-            })
+            }
+        )
     )
     $Tag = [Regex]::Escape($Tag)
 
-    # If the file has the OS and/or Architecture in the name (and an executable extension if we're on Windows)
-    $PlatformSpecific = $File.BaseName -match $OS -or $File.BaseName -match $Architecture
-    if ($Force -or ($PlatformSpecific -and ($FilterExtensions.Count -eq 0 -or $File.Extension -in $FilterExtensions))) {
+    # If the file has a token we want to replace in the name (and an executable extension if we're on Windows)
+    $NeedsCleaning = $File.BaseName -match $OS -or $File.BaseName -match $Architecture -or $File.BaseName -match $Tag
+    if ($Force -or ($NeedsCleaning -and ($FilterExtensions.Count -eq 0 -or $File.Extension -in $FilterExtensions))) {
         # When there is a manually specified executable name, we use that
         if ($ExecutableName) {
             # Make sure the executable name has the right extension
@@ -56,11 +58,11 @@ function SelectExecutableName {
                 $ExecutableName
             }
             # Try just removing the OS, Architecture, and Tag from the name
-        } elseif ($PlatformSpecific -and ($NewName = ($File.BaseName -replace "[-_. ]*(?:$Tag)[-_. ]*" -replace "[-_. ]*(?:$OS)[-_. ]*" -replace "[-_. ]*(?:$Architecture)[-_. ]*"))) {
+        } elseif ($NeedsCleaning -and ($NewName = ($File.BaseName -replace "[-_\. ]*(?:$Tag)[-_\. ]*" -replace "[-_\. ]*(?:$OS)[-_\. ]*" -replace "[-_\. ]*(?:$Architecture)[-_\. ]*"))) {
             $NewName.Trim("-_. ") + $File.Extension
         } else {
             # Otherwise, fall back to the repo name
-            $Repo.Trim("-_. ") + $File.Extension
+            $Repo + $File.Extension
         }
     } else {
         $File.Name

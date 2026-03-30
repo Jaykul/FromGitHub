@@ -60,13 +60,25 @@ Describe "SelectExecutableName" {
                 Expected      = "fzf.exe"
                 Description   = "Windows x86_64 with dashes - should strip and add .exe"
             }
+            # Should not rename files that don't actually need it, like flux_2.8.3_windows_amd64\flux.exe
+            @{
+                OS            = "windows|(?<!dar)win"
+                Architecture  = "amd64|x64|x86_64"
+                Repo          = "flux2"
+                Tag           = "v2.8.3"
+                FileName      = "flux_2.8.3_windows_amd64/flux.exe"
+                FileExtension = ".exe"
+                IsPosix       = $false
+                Expected      = "flux.exe"
+                Description   = "Flux should just be flux"
+            }
             # GitTower put the version number in their asset names ...
             @{
                 OS            = "windows|(?<!dar)win"
                 Architecture  = "amd64|x64|x86_64"
                 Repo          = "git-flow-next"
                 Tag           = "v1.0.0"
-                FileName      = "git-flow-v1.0.0-windows-amd64.exe"
+                FileName      = "git-flow-next/git-flow-v1.0.0-windows-amd64.exe"
                 FileExtension = ".exe"
                 IsPosix       = $false
                 Expected      = "git-flow.exe"

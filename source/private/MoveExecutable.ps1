@@ -41,7 +41,9 @@ function MoveExecutable {
     foreach ($File in $AllFiles) {
         $null = $PSBoundParameters.Remove("BinDir")
         $null = $PSBoundParameters.Remove("AssetDir")
-        $NewName = SelectExecutableName -File $File -Force:($AllFiles.Count -eq 1) @PSBoundParameters
+        # I added a -Force switch to SelectExecutableName to allow forcing the selection of a new name for the file ...
+        # But it tends to produce unexpected results, like the `Flux2` produces flux.exe which if you -Force will get renamed to flux2.exe
+        $NewName = SelectExecutableName -File $File @PSBoundParameters
 
         if ($NewName -ne $File.Name) {
             Write-Warning "Renaming $File to $NewName"
