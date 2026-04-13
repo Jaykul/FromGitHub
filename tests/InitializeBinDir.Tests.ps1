@@ -40,8 +40,20 @@ Describe "InitializeBinDir" {
             | Should -Be "/usr/local/bin"
         }
         It "Returns LocalAppData path on Windows" {
+            if (-not $Env:LocalAppData) {
+                $Env:LocalAppData = [Environment]::GetFolderPath("LocalApplicationData")
+            }
+
             & $CommandUnderTest -Force -IsPosix:$false
-            | Should -Be "$Env:LocalAppData\Programs\Tools"
+            | Should -Be ("$Env:LocalAppData", "Programs", "Tools" -join [IO.Path]::DirectorySeparatorChar)
+        }
+        It "Respects FROMGITHUB_BINDIR environment variable if set" {
+            $Env:FROMGITHUB_BINDIR = Join-Path $TestDrive "custombindir"
+
+            & $CommandUnderTest
+            | Should -Be $Env:FROMGITHUB_BINDIR
+
+            Remove-Item Env:FROMGITHUB_BINDIR
         }
     }
 

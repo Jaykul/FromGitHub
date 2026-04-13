@@ -4,24 +4,32 @@ function Install-FromGitHub {
         Install a binary from a github release.
     .DESCRIPTION
         An installer for single-binary tools released on GitHub.
-        This cross-platform script will download, check the file hash,
-        unpack and and make sure the binary is on your PATH.
+        This cross-platform script will find the right binary, download it,
+        check the file hash, unpack it, and make sure the binary is on your PATH.
 
         It uses the github API to get the details of the release and find the
         list of downloadable assets, and relies on the common naming convention
         to detect the right binary for your OS (and architecture).
+
+        Although it's not required for casual use (e.g. installing a tool at a
+        time), if you're using this in automation, such as build scripts, you
+        may set GITHUB_TOKEN in your environment to avoid throttling.
     .EXAMPLE
         Install-FromGitHub FluxCD Flux2
 
         Install `Flux` from the https://github.com/FluxCD/Flux2 repository
     .EXAMPLE
-        Install-FromGitHub earthly earthly
+        Install-FromGitHub EarthBuild/earthbuild
 
-        Install `earthly` from the https://github.com/earthly/earthly repository
+        Install `earth` from the https://github.com/EarthBuild/earthbuild repository
     .EXAMPLE
-        Install-FromGitHub junegunn fzf
+        Install-FromGitHub https://github.com/junegunn/fzf
 
         Install `fzf` from the https://github.com/junegunn/fzf repository
+    .EXAMPLE
+        Install-FromGitHub https://github.com/mikefarah/yq/releases/tag/v4.44.6
+
+        Install the old `yq` version v4.44.6 from its release on github.com
     .EXAMPLE
         Install-FromGitHub BurntSushi ripgrep
 
@@ -35,16 +43,12 @@ function Install-FromGitHub {
 
         Install `chezmoi` from the https://github.com/twpayne/chezmoi repository
     .EXAMPLE
-        Install-FromGitHub https://github.com/mikefarah/yq/releases/tag/v4.44.6
-
-        Install `yq` version v4.44.6 from it's release on github.com
-    .EXAMPLE
         Install-FromGitHub sharkdp/bat
         Install-FromGitHub sharkdp/fd
 
         Install `bat` and `fd` from their repositories
     .NOTES
-        All these examples are (only) tested on Windows and WSL Ubuntu
+        All these examples have (only) been tested on Windows and WSL Ubuntu
     #>
     [Alias("Install-GitHubRelease")]
     [CmdletBinding(SupportsShouldProcess)]
@@ -80,6 +84,7 @@ function Install-FromGitHub {
         # The location to install to.
         # Defaults to $Env:LocalAppData\Programs\Tools on Windows, /usr/local/bin on Linux/MacOS
         # There's normally no reason to pass this parameter
+        # If you want to change the default, set the FROMGITHUB_BINDIR environment variable
         [string]$BinDir,
 
         # Optionally, the file name for the executable (it will be renamed to this)

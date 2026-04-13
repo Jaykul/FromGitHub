@@ -12,10 +12,13 @@ function InitializeBinDir {
     )
 
     if (!$BinDir) {
-        $BinDir = $(if ($IsPosix) {
+        $BinDir = $(
+            if ($Env:FROMGITHUB_BINDIR) {
+                $Env:FROMGITHUB_BINDIR
+            } elseif ($IsPosix) {
                 '/usr/local/bin'
             } elseif ($Env:LocalAppData) {
-                "$Env:LocalAppData\Programs\Tools"
+                "$Env:LocalAppData", "Programs", "Tools" -join [IO.Path]::DirectorySeparatorChar
             } else {
                 "$HOME/.tools"
             }
