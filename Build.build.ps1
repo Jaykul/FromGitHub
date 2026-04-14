@@ -59,7 +59,7 @@ Add-BuildTask CopyScript -After PSModuleBuild {
     if ($Script.Count -eq 1) {
         $Script | Copy-Item -Destination (Join-Path $Script.DirectoryName $ScriptName)
     } else {
-        Write-Warning "Did not rename $ExpectedName to $ScriptName"
+        Write-Warning "Did not find $ExpectedName to rename to $ScriptName"
     }
 }
 
